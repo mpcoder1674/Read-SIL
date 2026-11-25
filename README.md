@@ -1,38 +1,56 @@
-# read@SIL
+# Read@SIL · Saptagiri Information Library
 
-read@SIL is the Sapthagiri Information Library portal. The interface follows the supplied student, librarian, administrator, and four-role login references, with separate navy, gold, green, and purple environments.
+Read@SIL is a responsive library portal with member, librarian, and administrator workspaces. It uses HTML, CSS and JavaScript in the browser, Node.js and Express for the API, MongoDB for persistence, JWT for authentication, and optional Cloudinary or Amazon S3 storage for book cover images.
 
-The project contains a React and TypeScript frontend, a Supabase client that reads public project configuration from environment variables, and a PostgreSQL migration with Row Level Security and transactional circulation functions. It also includes an explicitly labeled browser preview so the dashboards can be reviewed before cloud credentials are available.
+Hosting and deployment are intentionally left for a later step.
 
-## Run the interface
+## Run locally on Windows
 
-```powershell
-npm install
-npm run dev
-```
+1. Install **Node.js 20.19 or newer** and a local MongoDB Community Server.
+2. Double-click **Start Read@SIL.bat**. On the first run, it installs the project packages and creates `.env` from `.env.example`.
+3. Keep the local MongoDB service running. The default connection is `mongodb://127.0.0.1:27017/readasil`.
+4. Open `http://localhost:8000` if a browser did not open automatically.
+5. To stop Read@SIL, press **Ctrl+C** in its server window.
 
-Open the local Vite address and choose **Preview dashboard with sample data** on any role login. Preview changes are stored in this browser's local storage and are not university records. The reference screenshots informed the layout and theme; demo metrics are labeled as sample values.
+You can also run `npm install` and `npm start` from this folder. Use `npm run dev` while editing. The server waits for MongoDB before it opens the web app; if MongoDB is unavailable, start the local database service and run it again.
 
-## Connect Supabase
+## Demo workspaces
 
-1. Create a Supabase project and copy `.env.example` to `.env.local`.
-2. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the project URL and publishable key. Older projects can use `VITE_SUPABASE_ANON_KEY` instead. Never put a secret or service-role key in frontend configuration.
-3. Apply every `.sql` file in `supabase/migrations` in filename order, using the Supabase SQL Editor or CLI.
-4. Enable the university's email or Google provider in Supabase Auth.
-5. Create the first account in Supabase Auth, then promote its profile from the trusted SQL Editor:
+All demo accounts use **Read@2026**.
 
-```sql
-update public.profiles
-set role = 'administrator', is_active = true
-where email = 'your-admin-university-email';
-```
+| Workspace | Sign-in email |
+| --- | --- |
+| Student member | `student@readasil.edu` |
+| Faculty member | `faculty@readasil.edu` |
+| Librarian | `librarian@readasil.edu` |
+| Administrator | `admin@readasil.edu` |
 
-Users can request an account from each role's login screen. New Auth users remain inactive and receive the safe default `student` role; the requested portal is stored separately for administrator review. A trusted administrator must assign the approved role and activate the account before it can sign in. Signup metadata cannot grant faculty, librarian, or administrator access by itself.
+The first server launch seeds these accounts and sample books into an empty database. New member accounts created by staff start with the temporary password **Read@SIL2026**. Members can change their password from their profile.
 
-Once connected, login checks the authenticated user's profile role before entering a portal. Catalogue data and dashboard metrics come from Supabase; circulation issue, return, reservation, renewal review, member status changes, and book creation run through database functions. Row Level Security restricts access by profile role and ownership.
+## Registration and administrator credentials
 
-## Current scope
+Use the **Register** tab to create a student, faculty, or librarian account. Student and faculty accounts are ready immediately. Librarian registration creates a pending application; an administrator must approve it in **User Management** before that person can sign in. Admin registration is not available. The seeded administrator signs in with `admin@readasil.edu` and **Read@2026**; change the admin email or password from the admin profile. The admin credential form only changes login credentials and requires the current password.
 
-The app supports role-specific login screens, role-checked routes, dashboard and catalogue views, searching, CSV export, sample CRUD interactions, cloud catalogue creation, reservations, issue and return, renewal requests and review, notification read status, member activation and role assignment, audit records, and a clearly labeled demonstration-payment record. A demonstration payment does not collect money or settle a fine.
+## Included workflows
 
-Selected catalogue, circulation, reservation, profile, fine, payment and notification changes refresh through Supabase Realtime when the project has the `supabase_realtime` publication. Production email or push delivery, scheduled due-date reminders and reservation expiry, live payment processing, PDF reports, and invitation emails still need provider credentials or server-side jobs. They are not represented as active services. Configure Sapthagiri's final circulation and fine policies in the seeded `library_policies` row before using the database for real library operations.
+- **Members:** search and filter books, borrow available titles, reserve unavailable titles, view active and returned loans, check fine balances, read notices, and manage profiles and notification preferences.
+- **Librarians:** maintain the catalogue, manage member accounts, issue and check in books, review reservations and fines, publish notices, export circulation records, and view reports.
+- **Administrators:** staff workflows plus account and access views, audit history, library policy controls, and system settings.
+- The API checks permissions on protected operations. Passwords use bcrypt hashes; sessions use expiring, signed JWTs.
+- Circulation and reservations update the MongoDB inventory. Returned copies can be assigned to the next waiting reservation.
+
+## MongoDB configuration
+
+Set `MONGODB_URI` in `.env`. The supplied value connects to a local MongoDB service. Keep credentials private. `JWT_SECRET` should be a unique random value of at least 32 characters before any public deployment.
+
+## Book cover storage
+
+Cover uploads accept JPG, PNG, WebP, and GIF images up to 3 MB. Select one provider in `.env`:
+
+- **Cloudinary:** set `FILE_STORAGE_PROVIDER=cloudinary`, then provide `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET`.
+- **Amazon S3:** set `FILE_STORAGE_PROVIDER=s3`, then provide `AWS_REGION` and `AWS_S3_BUCKET`. AWS credentials are read through the standard AWS SDK credential chain. S3 covers are stored privately and served using short-lived signed URLs.
+- Leave `FILE_STORAGE_PROVIDER=none` until a provider is configured. Catalogue and circulation features work without image uploads.
+
+Provider accounts, credentials, and buckets are not configured in this project folder. Never put secret values in `app.js` or commit `.env`.
+
+Fine payments are recorded by library staff in the ledger. No payment processor is configured.
